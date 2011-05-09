@@ -121,11 +121,13 @@ class PasswordResetForm(forms.Form):
         return email
 
     def save(self, domain_override=None, email_template_name='registration/password_reset_email.html',
-             use_https=False, token_generator=default_token_generator, from_email=None, request=None):
+             use_https=False, token_generator=default_token_generator, from_email=None, request=None,
+             context={}, subject=None):
         """
         Generates a one-use only link for resetting password and sends to the user
         """
         from django.core.mail import send_mail
+        
         for user in self.users_cache:
             if not domain_override:
                 current_site = get_current_site(request)
@@ -143,8 +145,10 @@ class PasswordResetForm(forms.Form):
                 'token': token_generator.make_token(user),
                 'protocol': use_https and 'https' or 'http',
             }
-            send_mail(_("Password reset on %s") % site_name,
-                t.render(Context(c)), from_email, [user.email])
+            c.update(context)
+            if not subject:
+                subject = _("Password reset on %s") % site_name
+            send_mail(subject, t.render(Context(c)), from_email, [user.email])
 
 class SetPasswordForm(forms.Form):
     """
